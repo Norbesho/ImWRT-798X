@@ -408,15 +408,3 @@ jobs:
             echo "上传成功：$REMOTE_DIR/$NEW_NAME (SHA256: $SHA256)"
           done
 
-      - name: 清理旧发布
-        if: steps.tag.outputs.status == 'success'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release list --repo ${{ github.repository }} --limit 20 --json tagName --jq ".[] | select(.tagName | startswith(\"ImmortalWrt-24.10-${{ env.device_code }}\")) | .tagName" | tail -n +4 | xargs -I {} -r gh release delete {} --yes || true
-
-      - uses: Mattraks/delete-workflow-runs@v2
-        if: steps.tag.outputs.status == 'success'
-        with:
-          retain_days: 7
-          keep_minimum_runs: 3
