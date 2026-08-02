@@ -217,6 +217,37 @@ jobs:
             fi
           done
           $GITHUB_WORKSPACE/$DIY_P2_SH
+          if [ "$device_code" = "cudy_wr3000-v1" ]; then
+            echo "Applying the slim profile required by the 16 MB firmware partition..."
+            slim_symbols=(
+              PACKAGE_luci-app-turboacc-mtk
+              PACKAGE_luci-i18n-turboacc-mtk-zh-cn
+              PACKAGE_TURBOACC_INCLUDE_FLOW_OFFLOADING
+              PACKAGE_TURBOACC_INCLUDE_NO_FASTPATH
+              PACKAGE_luci-app-ksmbd
+              PACKAGE_kmod-fs-ksmbd
+              KERNEL_DEBUG_INFO
+              KERNEL_DEBUG_INFO_BTF
+              KERNEL_BPF_EVENTS
+              KERNEL_CGROUP_BPF
+              KERNEL_XDP_SOCKETS
+              PACKAGE_kmod-sched-bpf
+              PACKAGE_kmod-xdp-sockets-diag
+              PACKAGE_kmod-veth
+              PACKAGE_kmod-vrf
+              PACKAGE_kmod-oaf
+              PACKAGE_kmod-fuse
+              PACKAGE_luci-theme-argon
+              PACKAGE_openssh-sftp-server
+              PACKAGE_tcpdump
+              PACKAGE_htop
+              PACKAGE_nano
+            )
+            for symbol in "${slim_symbols[@]}"; do
+              sed -i "/^CONFIG_${symbol}=/d; /^# CONFIG_${symbol} is not set$/d" .config
+              echo "# CONFIG_${symbol} is not set" >> .config
+            done
+          fi
           make defconfig
           make download -j8
 
@@ -268,12 +299,22 @@ jobs:
           set -e
           cd openwrt/bin/targets/*/*
           rm -rf packages
-          for file in *sysupgrade* *factory*; do
-            [ -f "$file" ] && ! echo "$file" | grep -q "-bl2" && {
-              TYPE=$(echo "$file" | grep -o "sysupgrade\|factory")
-              EXT="${file##*.}"
-              mv "$file" "${{ env.device_code }}_25dB-on_${{ env.FIRMWARE_VERSION }}_${TYPE}.${EXT}"
-            }
+          shopt -s nullglob
+          firmware_files=( *sysupgrade* *factory* )
+          valid_firmware=()
+          for file in "${firmware_files[@]}"; do
+            [ -f "$file" ] || continue
+            [[ "$file" == *-bl2* ]] && continue
+            valid_firmware+=( "$file" )
+          done
+          if [ "${#valid_firmware[@]}" -eq 0 ]; then
+            echo "::error::No sysupgrade or factory firmware image was produced. Check image size warnings."
+            exit 1
+          fi
+          for file in "${valid_firmware[@]}"; do
+            TYPE=$(echo "$file" | grep -o "sysupgrade\|factory")
+            EXT="${file##*.}"
+            mv -- "$file" "${{ env.device_code }}_25dB-on_${{ env.FIRMWARE_VERSION }}_${TYPE}.${EXT}"
           done
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "status=success" >> $GITHUB_OUTPUT
@@ -334,7 +375,8 @@ jobs:
             ${{ env.FIRMWARE }}/*sysupgrade*.*
             ${{ env.FIRMWARE }}/*factory*.*
             ${{ env.FIRMWARE }}/README.md
-          overwrite: true
+          overwrite_files: true
+          fail_on_unmatched_files: true
 
       - name: 上传WebDAV
         if: steps.version.outputs.status == 'success' && env.WEBDAV_URL && env.WEBDAV_USERNAME && env.WEBDAV_PASSWORD
