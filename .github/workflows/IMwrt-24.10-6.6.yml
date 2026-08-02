@@ -199,13 +199,16 @@ jobs:
           cd openwrt
           chmod +x $GITHUB_WORKSPACE/$DIY_P1_SH $GITHUB_WORKSPACE/$DIY_P2_SH
           $GITHUB_WORKSPACE/$DIY_P1_SH
+          if [ ! -d package/luci-theme-aurora ]; then
+            git clone --depth 1 --branch master https://github.com/eamonxg/luci-theme-aurora.git package/luci-theme-aurora
+          fi
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           required_packages=(
             package/feeds/luci/luci-app-ttyd/Makefile
             package/feeds/packages/lua-cjson/Makefile
             package/feeds/packages/libev/Makefile
-            package/feeds/aurora/luci-theme-aurora/Makefile
+            package/luci-theme-aurora/Makefile
           )
           for required_package in "${required_packages[@]}"; do
             if [ ! -e "$required_package" ]; then
