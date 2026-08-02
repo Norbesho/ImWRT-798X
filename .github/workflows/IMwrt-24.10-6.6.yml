@@ -176,10 +176,9 @@ jobs:
           path: |
             /var/cache/apt/archives
             ~/.ccache
-            /workdir/openwrt
-            openwrt/feeds
-          key: ${{ runner.os }}-build-${{ env.REPO_URL }}-${{ env.REPO_BRANCH }}-${{ hashFiles('openwrt/feeds.conf.default', 'openwrt/.config') }}
-          restore-keys: ${{ runner.os }}-build-
+          key: ${{ runner.os }}-build-${{ env.REPO_BRANCH }}-${{ matrix.device_model }}-${{ hashFiles('feeds.conf.default', '24.10-6.6.config') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.REPO_BRANCH }}-${{ matrix.device_model }}-
 
       - name: 克隆或更新源代码
         working-directory: /workdir
