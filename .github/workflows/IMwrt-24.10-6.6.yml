@@ -199,7 +199,20 @@ jobs:
           cd openwrt
           chmod +x $GITHUB_WORKSPACE/$DIY_P1_SH $GITHUB_WORKSPACE/$DIY_P2_SH
           $GITHUB_WORKSPACE/$DIY_P1_SH
-          ./scripts/feeds update -a && ./scripts/feeds install -a
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          required_packages=(
+            package/feeds/luci/luci-app-ttyd/Makefile
+            package/feeds/packages/lua-cjson/Makefile
+            package/feeds/packages/libev/Makefile
+            package/feeds/aurora/luci-theme-aurora/Makefile
+          )
+          for required_package in "${required_packages[@]}"; do
+            if [ ! -e "$required_package" ]; then
+              echo "::error file=feeds.conf.default::Missing required feed package: $required_package"
+              exit 1
+            fi
+          done
           $GITHUB_WORKSPACE/$DIY_P2_SH
           make defconfig
           make download -j8
