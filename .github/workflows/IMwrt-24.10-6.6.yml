@@ -90,8 +90,7 @@ jobs:
                 repo: context.repo.repo,
                 name: 'last-checked-sha',
                 per_page: 100
-              },
-              response => response.data.artifacts
+              }
             );
             const latest = artifacts
               .filter(artifact => !artifact.expired)
